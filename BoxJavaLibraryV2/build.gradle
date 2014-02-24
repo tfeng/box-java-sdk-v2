@@ -7,9 +7,9 @@ repositories {
 }
 
 dependencies {
-	compile 'com.fasterxml.jackson.core:jackson-annotations:2.2.2'
-	compile 'com.fasterxml.jackson.core:jackson-core:2.2.2'
-	compile 'com.fasterxml.jackson.core:jackson-databind:2.2.2'
+	compile 'com.fasterxml.jackson.core:jackson-annotations:2.2.3'
+	compile 'com.fasterxml.jackson.core:jackson-core:2.2.3'
+	compile 'com.fasterxml.jackson.core:jackson-databind:2.2.3'
 	compile 'commons-codec:commons-codec:1.8'
 	compile 'commons-io:commons-io:2.4'
 	compile 'commons-lang:commons-lang:2.6'
@@ -33,5 +33,96 @@ sourceSets {
 	}
 }
 
-group = 'com.box.boxjavalibv2'
-version = '1.0'
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from 'build/docs/javadoc'
+}
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allSource
+    classifier = 'sources'
+}
+
+group = 'com.bacoder.box'
+version = '1.0-201309071158-r'
+
+import org.gradle.plugins.signing.Sign
+
+projectName = 'box-java-sdk-v2'
+
+ext.set('project.archivesBaseName', projectName)
+ext.set('project.tasksBaseName', projectName)
+ext.set('archivesBaseName', projectName)
+ext.set('tasksBaseName', projectName)
+
+apply plugin: 'signing'
+
+artifacts {
+    archives jar
+    archives javadocJar
+    archives sourcesJar
+}
+
+System.console().println()
+
+if(!hasProperty('sonatypeUsername')) {
+    ext.set('sonatypeUsername', System.console().readPassword("Sonatype account username: "))
+}
+
+if(!hasProperty('sonatypePassword')) {
+    ext.set('sonatypePassword', System.console().readPassword("Password for Sonatype account: "))
+}
+
+if(!hasProperty('signing.password')) {
+    ext.set('signing.password', System.console().readPassword("Passphrase for GPG key: "))
+}
+
+if(!hasProperty('signing.secretKeyRingFile')) {
+    ext.set('signing.secretKeyRingFile', System.getProperty('user.home') + "/.gnupg/secring.gpg")
+}
+
+signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+ 
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2") {
+              authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+
+            pom.artifactId = projectName
+ 
+            pom.project {
+               name projectName
+               packaging 'jar'
+               description 'Box Java SDK'
+               url 'https://github.com/tfeng/box-java-sdk-v2'
+ 
+               scm {
+                   url 'scm:git@github.com:tfeng/box-java-sdk-v2'
+                   connection 'scm:git@github.com:tfeng/box-java-sdk-v2.git'
+                   developerConnection 'scm:git@github.com:tfeng/box-java-sdk-v2.git'
+               }
+ 
+               licenses {
+                   license {
+                       name 'The Apache Software License, Version 2.0'
+                       url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                       distribution 'repo'
+                   }
+               }
+ 
+               developers {
+                   developer {
+                       id 'tfeng'
+                       name 'Thomas Feng'
+                   }
+               }
+           }
+        }
+    }
+}
